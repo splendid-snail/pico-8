@@ -1,0 +1,136 @@
+cock = {
+x=64,
+y=64,
+spd=2
+}
+grass = {}
+cums = {}
+pisses = {}
+
+function makegrass()
+  local g = {
+  sp=3,
+  x=rnd(128),
+  y=rnd(128)
+  }
+  add(grass,g)
+end
+
+function cockmove()
+  --actual movement
+	if (btn(o)) then cock.x-=cock.spd end
+	if (btn(1)) then cock.x+=cock.spd end
+	if (btn(2)) then cock.y-=cock.spd end
+	if (btn(3)) then cock.y+=cock.spd end
+  if (btn(4)) then cum() end
+  if (btn(5)) then piss() end
+  if (btnp(4)) and (#cums>799) then sfx(003) end
+  --edge detection
+  if (cock.x<1) then cock.x=1 end
+  if (cock.x>121) then cock.x=121 end
+  if (cock.y<1) then cock.y=1 end
+  if (cock.y>119) then cock.y=119 end
+end
+
+function cum()
+  if (#cums<800) then
+    local c = {
+    sp=002,
+    x=cock.x+2,
+    y=cock.y+3,
+    spd=rnd(1)+7,
+    dtick=rnd(20),
+    dlength=1
+    }
+    add(cums,c)
+    sfx(01)
+  end
+end
+
+function piss()
+    local p = {
+    sp=004,
+    x=cock.x+2,
+    y=cock.y,
+    spd=8
+    }
+    add(pisses,p)
+    sfx(02)
+  end
+
+function _init()
+	cls()
+	music(00)
+  makegrass()
+  makegrass()
+  makegrass()
+  makegrass()
+  makegrass()
+end
+
+function _update()
+	cockmove()
+  --movecum
+  for c in all(cums) do
+    c.y-=c.spd
+    c.spd-=1
+    if (c.spd<0) then
+      c.spd=0
+    end
+    if (c.y<0) then
+      del(cums,c)
+    end
+    if (pget(c.x+1,c.y+4) == 10) then
+      del(cums,c)
+    end  
+  end
+  --movepiss
+  for p in all(pisses) do
+    p.y-=p.spd
+    if (p.y<0) then
+      del(pisses,p)
+    end
+  end
+end
+
+function _draw()
+	cls()
+  --bg
+  rectfill(0,0,127,127,3)
+  --print title
+  print ("cock of the walk",30,64,7)
+  print ("z to cum / x to piss",46,120,7)
+  --lines
+  line (0,0,127,0,7)
+  line (127,0,127,127,7)
+  line (127,127,0,127,7)
+  line (0,127,0,0,7)
+  --drawgrass
+  for g in all(grass) do
+    spr(g.sp,g.x,g.y)
+  end
+  --drawpiss
+  for p in all(pisses) do
+    spr(p.sp,p.x,p.y)
+  end
+  --drawcum
+  for c in all(cums) do
+    spr(c.sp,c.x,c.y)
+    line(c.x,c.y,c.x,c.y+c.dlength,7)
+    if (c.dtick>0) then c.dlength+=1 end
+    c.dtick-=1 
+  end
+  --print cumlevels
+  print(#cums,5,114,7)
+  print("cummies",5,120,7)
+  --drawcock
+  if (#cums<800) then
+	spr(001,cock.x,cock.y) else
+  spr(005,cock.x,cock.y)
+  end
+  --drawwarn
+  if (#cums==800) then
+    rectfill(39,63,86,69,7)
+    print("cummed out!!",40,64,0)
+  end
+end
