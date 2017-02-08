@@ -1,0 +1,138 @@
+function makestars()
+	sc=0
+	while sc<25 do
+		local s = {
+			sp=074,
+			x=flr(rnd(899))+128,
+			y=flr(rnd(128)),
+		}
+		add(stars,s)
+		sc+=1
+	end
+end
+
+function growplanet()
+	if planet.rad<128 then
+		if player.x>970 then
+			planet.rad+=2
+		end
+	end
+end
+
+function move()
+	--move up
+	if btn(2) then
+		player.y-=player.speed
+	end
+
+	--move down
+	if btn(3) then
+		player.y+=player.speed
+	end
+
+	--move left
+	if btn(0) then
+		player.x-=player.speed
+	end
+
+	--move right
+	if btn(1) then
+		player.x+=player.speed
+	end
+
+	--constrain movement(excluding right)
+	if player.x<0 then player.x=0 end
+	if player.y<0 then player.y=0 end
+	if player.y>120 then player.y=120 end
+
+	--lock to cam
+	if player.x<camx then
+		player.x=camx
+	end
+end
+
+function start()
+	if not playing then
+		if btnp(4) then
+			playing=true
+		end
+	end
+end
+
+function movecam()
+	if playing then
+		if camx<899 then
+			camx+=camspeed
+		end
+	end
+end
+
+function _init()
+	camx=0
+	camspeed=1
+	playing=false
+
+	player={}
+	player.speed=2
+	player.sfront=117
+	player.sback=116
+	player.x=63
+	player.y=79
+
+	planet={}
+	planet.x=1000
+	planet.y=63
+	planet.rad=30
+
+	stars={}
+
+	makestars()
+
+	
+	
+end
+
+function _update()
+	--start the game by pressing z
+	start()
+
+	--move the camera by the cam speed
+	movecam()
+
+	--player's movement code
+	move()
+
+	--planet landing code
+	growplanet()
+end
+
+function _draw()
+	cls()
+
+	--print the title text
+	print("journey to the",16,32,7)
+	print("z to start",64,100,7)
+
+	--print the map
+	map(0,0,0,0,128,16)
+
+	--draw extra stars
+	for s in all(stars) do
+		spr(s.sp,s.x,s.y)
+	end
+
+	--draw the basic planet
+	circfill(planet.x,planet.y,planet.rad,10)
+
+	--draw the player's ship
+	spr(116,player.x,player.y)
+	spr(117,player.x+8,player.y)
+
+
+
+	--set camera location
+	camera(camx,0)
+
+	--debug printing
+	print(player.x,camx,0,7)
+end
