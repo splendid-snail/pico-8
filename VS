@@ -1,0 +1,281 @@
+function cam()
+  if (player.x<63) then
+  camera(0,0)
+  elseif
+  (player.x>960) then
+  camera(896,0) else
+  camera(player.x-64,0)
+  end
+end
+
+function chart()
+  if (player.x<63) then
+    chartx1=2
+  elseif (player.x>960) then
+    chartx=900
+  else
+    chartx1=player.x-62
+  end
+  
+  chartx2=chartx1+42  
+  charty=2
+
+    
+  --horiztontal lines
+  line(chartx1,charty,chartx2,charty,7)
+  line(chartx1,charty+4,chartx2,charty+4,7)
+  --vertical lines
+  line(chartx1,charty,chartx1,charty+4,7)
+  line(chartx2,charty,chartx2,charty+4,7)
+
+  --rect 
+  rectx2=(player.conf*7)
+  rectfill(chartx1,charty,(chartx1+rectx2),charty+4,7)
+
+  --text
+  print("strip confidence", chartx2+3,charty,7)
+end
+
+--checks if a given x y position has a solid tile flag
+function solid(x,y)
+  val=mget(flr(x/8),flr(y/8))
+  return fget(val,0)
+end
+
+--checks if the square below is solid
+function grounded()
+  --finds sprite at player position
+  b = mget (flr(player.x)/8,flr(player.y)/8+1)
+  --returns true if flag 0 is found
+  return fget(b,0)
+end
+
+--the big one
+function move()
+  -- strip button!
+  if player.conf==6 then
+    if btnp(5) then
+      player.nude=true
+      player.sprite=1
+      player.speed=player.nudespeed
+      if not player.strippedonce then
+        sfx(4)
+        shirt.x=player.x+7
+        shirt.y=player.y
+        pants.x=player.x+4
+        pants.y=player.y
+        player.strippedonce=true
+      end
+    end
+  end
+
+  --increase left/right acceleration and do walking animation
+
+  if (btn(0)) then
+    player.dx-=(player.accel/2)
+    walkanim()
+    player.right=false
+  end
+
+  if (btn(1)) then
+    player.dx+=(player.accel/2)
+    walkanim()
+    player.right=true
+  end
+
+  --walking sound (buggy)
+  if grounded() and (btn(0) or btn(1)) then
+    if (frame % 4 ==0) then
+      sfx(00)
+    end
+  end
+
+  --limit left/right acceleration
+  if (player.dx>player.speed)
+    then player.dx=player.speed
+  elseif (player.dx<-player.speed)
+    then player.dx=-player.speed
+  end
+
+  --if no buttons, decellerate
+  if (not btn(0) and not btn(1)) then
+    if player.dx<0 then
+      player.dx+=(player.decel/2)
+    elseif player.dx>0 then
+      player.dx-=(player.decel/2)
+    else player.dx=0
+    end
+  end
+
+  --move player left/right by velocity amount
+  if solid(flr(player.x+player.dx),player.y)==false and solid(flr((player.x+7)+player.dx), player.y)==false then
+    player.x+=player.dx
+  end
+
+  --y axis grav controls and jumping
+  if grounded() then
+    if (btnp(4)) and not solid(player.x,player.y-1) and not solid(player.x+7,player.y-1) then
+      player.dy=-7
+      sfx(1)
+    else
+      player.dy = 0
+      --math here first finds your map square with your y/8 rounded, then converts
+      --to the top of the square by multiplying by 8 again and rounding again
+      player.y = flr(flr(player.y/8)*8)
+    end
+  else
+    player.dy += 0.75
+  end
+
+  if solid(player.x,player.y-player.dy) and solid(player.x+7,player.y-player.dy) then
+    player.dy=abs(player.dy)
+  end
+
+  --limit y veloc
+  if player.dy>6 then player.dy=6 end
+  --falling
+  player.y+=player.dy
+  player.y=flr(player.y)
+
+
+
+  --if we're not moving, use standing sprite
+  if not player.nude then
+    if not player.moving then player.sprite=17 end
+  elseif player.nude then
+    if not player.moving then player.sprite=1 end
+  end
+end
+
+function walkanim()
+  --set moving to true
+  player.moving=true
+  --cycle the sprites if grounded
+  if (grounded()) then
+    player.sprite+=1
+    if (player.sprite==20) then player.sprite=17 end
+    if (player.sprite==4) then player.sprite=1 end
+  end
+end
+
+function stripanim()
+    shirt.y-=2
+    pants.y-=2
+    shirt.x+=7
+    pants.x-=7
+end
+
+--basic strip confidence implementation - max is 6 
+function confidence()
+  if player.conf<1 then
+    if player.x>127 then player.conf+=1 end 
+  end
+  if player.conf>=1 and player.conf<2 then
+    if player.x>255 then player.conf+=1 end
+  end
+  if player.conf>=2 and player.conf<3 then
+    if player.x>383 then player.conf+=1 end
+  end
+  if player.conf>=3 and player.conf<4 then
+    if player.x>511 then player.conf+=1 end
+  end
+  if player.conf>=4 and player.conf<5 then
+    if player.x>639 then player.conf+=1 end
+  end
+  if player.conf>=5 and player.conf<6 then
+    if player.x>767 then player.conf+=1 end
+  end
+end
+
+function brag()
+  if frame<16 then
+    print("yeah!", player.x-4,player.y-7,1)
+  end
+end
+
+function _init()
+  player = {}
+  player.x=9
+  player.y=111
+  player.dx=0
+  player.dy=0
+  player.sprite=17
+  player.accel=1
+  player.decel=1
+  player.speed=3
+  player.nudespeed=6
+  player.moving=false
+  player.right=true
+  player.nude=false
+  player.strippedonce=false
+  player.conf=0
+
+  menu=true
+
+  shirt = {}
+  shirt.x=player.x
+  shirt.y=player.y
+
+  pants = {}
+  pants.x=player.x
+  pants.y=player.y
+
+  frame=1
+end
+
+function _update()
+
+if menu then 
+
+  if btnp(4) then menu=false end
+
+else
+
+  frame+=1
+  if frame>30 then frame = 1 end
+  player.moving=false
+  grounded()
+  move()
+  if player.nude then stripanim() end
+  confidence()
+end
+
+
+  
+end
+
+function _draw()
+  cls()
+
+  if menu then 
+    rectfill(-255,-255,944,127,1)
+    print("VIRTUA STREAKER", 35, 10, 7)
+    print("Instructions:", 35, 40, 7)
+    print("Run right to build strip", 15, 60, 7)
+    print("confidence - then press", 15, 70, 7)
+    print("x to start streaking!", 15, 80, 7)
+    print("Press z to start", 35, 115, 7)
+
+  else
+    rectfill(-255,-255,944,127,12)
+
+    map(0,0,0,0,128,16)
+    
+
+    if player.right then
+      spr(player.sprite,player.x,player.y) else
+      spr(player.sprite,player.x,player.y,1,1,true)
+    end
+
+    if player.nude then
+      spr(16,shirt.x,shirt.y)
+      spr(48,pants.x,pants.y)
+      brag()
+    end
+
+    print("police",853,97,1)
+    cam()
+    chart()
+  end
+  
+end
