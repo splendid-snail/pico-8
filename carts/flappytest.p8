@@ -1,15 +1,16 @@
 pico-8 cartridge // http://www.pico-8.com
 version 8
 __lua__
-
+--to do:
 --redesign map
 --stop cops from going into house (hard x limit in movement code)
+--make cops (and others?) strip and dash on touch?
 --weird shit appears in the sky after streaking
 --add other characters towards start of map
---sounds for attempted strip, prisoner stuff more confidence, etc
---"curtain down" animation for game end
+--sounds for attempted strip etc
 --end screen: summary of results (eventually madlibbded) (maybe not)
 
+--camera movement
 function cam()
   if (player.x<63) then
   camera(0,0)
@@ -20,7 +21,9 @@ function cam()
   end
 end
 
+--drawing strip confidence chart
 function chart()
+  --setting variables for chart location
   if (player.x<63) then
     chartx1=2
   elseif (player.x>960) then
@@ -39,11 +42,11 @@ function chart()
   line(chartx1,charty,chartx1,charty+4,7)
   line(chartx2,charty,chartx2,charty+4,7)
 
-  --rect
+  --drawing rect
   rectx2=(player.conf*7)
   rectfill(chartx1,charty,(chartx1+rectx2),charty+4,7)
 
-  --text
+  --drawing text
   print("strip confidence", chartx2+3,charty,7)
 end
 
@@ -110,6 +113,7 @@ function makebiddy(x,y)
   add (biddy,b)
 end
 
+--generates a prisoner
 function makeprisoner(x,y)
   local p = {
     spt=96,
@@ -125,6 +129,7 @@ function makeprisoner(x,y)
   add (prisoner,p)
 end
 
+--draws the prisoner
 function drawprisoner()
   for p in all(prisoner) do
     if not p.nude then
@@ -304,7 +309,6 @@ function move()
   end
 
   --increase left/right acceleration and do walking animation
-
   if (btn(0)) then
     player.dx-=(player.accel/2)
     walkanim()
@@ -385,6 +389,7 @@ function move()
   end
 end
 
+--walking animation for player
 function walkanim()
   --set moving to true
   player.moving=true
@@ -396,6 +401,7 @@ function walkanim()
   end
 end
 
+--strip animation for player
 function stripanim()
     shirt.y-=2
     pants.y-=2
@@ -403,6 +409,7 @@ function stripanim()
     pants.x-=7
 end
 
+--strip animation for prisoner
 function prisonstrip()
   prisshirt.y-=2
   prispants.y-=2
@@ -432,54 +439,70 @@ function confidence()
   end
 end
 
+--player speech function
 function brag()
   if frame<16 then
     print("yeah!", player.x-4,player.y-7,1)
   end
 end
 
+--curtain down function
+function draw_curtain()
+  if curtain_falling then
+    rectfill(0,0,511,curt_y,1)
+  end
+end
+
 function _init()
+  --everything to do with the player
   player = {}
-  player.x=9
-  player.y=111
-  player.dx=0
-  player.dy=0
-  player.sprite=17
-  player.accel=1
-  player.decel=1
-  player.speed=3
-  player.nudespeed=6
-  player.moving=false
-  player.right=true
-  player.nude=false
-  player.strippedonce=false
-  player.conf=0
+  player.x = 9
+  player.y = 111
+  player.dx = 0
+  player.dy = 0
+  player.sprite = 17
+  player.accel = 1
+  player.decel = 1
+  player.speed = 3
+  player.nudespeed = 6
+  player.moving = false
+  player.right = true
+  player.nude = false
+  player.strippedonce = false
+  player.conf = 0
 
-  gateopen=false
+  --gate starts closed
+  gateopen = false
 
-  state="menu"
+  --initialise in menu
+  state = "menu"
 
+  --player clothing tables and variables
   shirt = {}
-  shirt.x=player.x
-  shirt.y=player.y
+  shirt.x = player.x
+  shirt.y = player.y
 
   pants = {}
-  pants.x=player.x
-  pants.y=player.y
+  pants.x = player.x
+  pants.y = player.y
 
+  --prisoner clothing tables and variables
   prispants = {}
-  prispants.x=995
-  prispants.y=104
+  prispants.x = 995
+  prispants.y = 104
 
   prisshirt = {}
-  prisshirt.x=995
-  prisshirt.y=104
+  prisshirt.x = 995
+  prisshirt.y = 104
 
   --npcs
   cops = {}
   dogs = {}
   biddy = {}
   prisoner = {}
+
+  curtain_falling = false
+  curt_y = 0
 
   frame=1
   makecop(960,104)
@@ -515,7 +538,7 @@ function _update()
     if player.nude then stripanim() end
     for p in all(prisoner) do
       if p.nude then
-        prisonstrip() 
+        prisonstrip()
       end
       if p.nude and not p.soundplayed then
         sfx(4)
@@ -523,8 +546,17 @@ function _update()
       end
     end
     confidence()
+
+    --more hopeful curtain code
+    if player.nude and gateopen and player.x < 10 then
+      curtain_falling = true
+    end
+
+    if curtain_falling then curt_y += 2 end
+
     --win condition
-    if player.nude and gateopen and player.x < 10 then state="won" end
+    if curt_y > 130 then state="won" end
+
   elseif state=="won" then
       if btnp(4) then _init() end
   end
@@ -544,8 +576,10 @@ function _draw()
     print("press z to start", 35, 115, 7)
 
   elseif state=="game" then
+    --draw blue background ("sky")
     rectfill(-255,-255,944,127,12)
 
+    --draw game map
     map(0,0,0,0,128,16)
 
     --draw npcs
@@ -562,8 +596,10 @@ function _draw()
 
     --what to do if nude
     if player.nude then
+      --draw discarded clothes
       spr(16,shirt.x,shirt.y)
       spr(48,pants.x,pants.y)
+      --draw player speech
       brag()
       --draw cop reactions
       for c in all(cops) do
@@ -587,7 +623,7 @@ function _draw()
     print("warning: streakers",410,84,0)
     print("will be executed!!",410,92,0)
 
-    --draw jail bars
+    --draw permenant jail bars
     spr(111,984,88)
     spr(111,992,88)
     spr(111,1000,88)
@@ -600,7 +636,7 @@ function _draw()
       spr(128,1008,72)
     end
 
-    --draw bars
+    --draw all bars if the gate is set to closed
     if not gateopen then
       spr(111,984,96)
       spr(111,992,96)
@@ -621,18 +657,20 @@ function _draw()
       end
     end
 
-
     --debug/ref printing
     --player x-- print(player.x,player.x,player.y+8,2)
 
     cam()
     chart()
-  elseif state=="won" then
-    player.nude=false
-    rectfill(-255,-255,944,127,1)
-    print("you win!",10,64,7)
-    print("press z to start again",10,72,7)
+    --draw curtain
+    draw_curtain()
 
+  elseif state=="won" and curt_y >= 127 then
+      camera(0,0)
+      rectfill(-255,-255,944,127,1)
+      spr(106, 40, 15, 5,3,false)
+      print("you win!",10,64,7)
+      print("press z to start again",10,72,7)
   end
 end
 
@@ -779,12 +817,12 @@ __map__
 0000003200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005d4a4b5b4a4b5b5b5b5a5b4b5a5b4a4b5d
 2121213121220000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000058570000000000000058570000000000000000000000000000000000000000000000000000000000005d5a5b5b5a5b5b5b5b5b5a5b5b5b4a4b5d
 2121212121212200000000404142000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000054550000000000000054550000000000000000000000000000000000000000000040454200000000005d5b4a4b38394a4b38394a4b38395a5b5d
-2b2b2b2b2b2b0000000000454141000000000000000000000000000000000000000000004041420000404541414142000000000000000000000000000000000000000000000056560000000000000056560000000000000000000000000000050000000000000041414100000000005d5b5a5b48494a4b48495a5b48494a4b5d
-38393b38393c0000000000414541000000000000000000000000000000000000000000004141410000454141414541000000793636363636363636367800000000000000000056560000000000000056560000000000000000000000000000150000000000000045414100000000005d5b4a4b5b5b5a5b5b4a4b5e5f5f5f5f4d
-48493b48493c0000000000434144000000000000000000000500000000000000000000004345440000434141454144000000793636363636363636367800000500000000000056560000000000000056560000000000000000000000000000150000004041420043414400000000005d5b5a5b5b5b4a4b5b4a4b5d5a4a4a4b5d
-3b3b3b3b3b2b00000000000051000000000000000005000015000000000000000000000000515000000000510051000000007936363636363636363678000015000000000000565600000000000000565600000000000000000000000000000c0000004341440000510036363636005d4a4b4a4b4a4b5b4b5a5b5d4a5a5a5b5d
-3c2c2c2c2c23241d1d1d1d1d52251d1d1d0005000015000015001d251d1d1d251d1d1d1d1d521d1d1d251d521d521d1d1d1d1d373537351d373537351d1d25151d1d1d1d1d1d64650000000000000064651d1d1d1d1d251d1d1d1d251d1d1d0d1d1d1d25521d251d521d373537351d5b5a5b5a5b5a5b5a5b5a5a5d5b4b5a5b5d
-2b2b2b2b2b2b1c0c0c1c0c0c0c0c0c0c0c1d151d1d151d1d151d0c0c0c1c1c1c0c0c0c0c1c0c1c0c0c0c0c0c1c0c0c0c0c0c1c0c0c0c0c1c0c0c1c1c0c0c0c0c1c0c1c0c0c1c62635353535353535362630c0c1c0c1c1c0c1c0c0c0c1c0c0c0d0c0c1c0c1c1c0c1c1c1c0c1c0c1c0c2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a3a
+2b2b2b2b2b2b0000000000454141000000000000000000000000000000000000000000004041420000404541414142000000000000000000000000000000000000000000000056560000000000000056560000000000000000000000000000000000000000000041414100000000005d5b5a5b48494a4b48495a5b48494a4b5d
+38393b38393c0000000000414541000000000000000000000000000000000000000000004141410000454141414541000000793636363636363636367800000000000000000056560000000000000056560000000000000000000000000000000000000000000045414100000000005d5b4a4b5b5b5a5b5b4a4b5e5f5f5f5f4d
+48493b48493c0000000000434144000000000000000000000500000000000000000000004345440000434141454144000000793636363636363636367800000500000000000056560000000000000056560000000000000000000000000000000000004041420043414400000000005d5b5a5b5b5b4a4b5b4a4b5d5a4a4a4b5d
+3b3b3b3b3b2b0000000000005100040000000000000500001500000000000000000000000051500000000051005100000000793636363636363636367800001500000000000056560000000000000056560000000000000000000000000000000000004341440000510036363636005d4a4b4a4b4a4b5b4b5a5b5d4a5a5a5b5d
+3c2c2c2c2c23241d1d1d1d1d5225041d040005000015000015001d251d1d1d251d1d1d1d1d521d1d1d251d521d521d1d1d1d1d373537351d373537351d1d25151d1d1d1d1d1d64650000000000000064651d1d1d1d1d251d1d1d1d251d1d1d1d1d1d1d25521d251d521d373537351d5b5a5b5a5b5a5b5a5b5a5a5d5b4b5a5b5d
+2b2b2b2b2b2b1c0c0c1c0c0c0c0c0c0c0c1d151d1d151d1d151d0c0c0c1c1c1c0c0c0c0c1c0c1c0c0c0c0c0c1c0c0c0c0c0c1c0c0c0c0c1c0c0c1c1c0c0c0c0c1c0c1c0c0c1c62635353535353535362630c0c1c0c1c1c0c1c0c0c0c1c0c0c1c0c0c1c0c1c1c0c1c1c1c0c1c0c1c0c2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a3a
 0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0c0c1c0c0c0c1c0c0c0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d1e4f2f4f4e3e4f3f4f2f4f4e3f4f4f2e0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d3a3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b3b
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
